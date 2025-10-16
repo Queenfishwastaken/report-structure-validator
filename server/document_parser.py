@@ -5,7 +5,6 @@ from io import BytesIO
 async def read_docx(file) -> list:
     """Читает заголовки из DOCX файла"""
     try:
-        # Читаем файл
         file_content = await file.read()
 
         # Парсим DOCX

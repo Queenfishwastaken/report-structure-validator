@@ -1,14 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# Импортируем наши модули
 from auth import check_user, create_token, get_user_from_header
 from document_parser import read_docx
 from structure_checker import compare_sections, TEMPLATES
 
 app = FastAPI(title="Проверка структуры отчетов")
 
-# Разрешаем запросы отовсюду (для тестов)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,13 +53,10 @@ async def проверить_документ(
         return {"ошибка": "Нужен файл .docx"}
 
     try:
-        # Читаем разделы из документа
         найденные_разделы = await read_docx(файл)
 
-        # Сравниваем с шаблоном
         результат = compare_sections(найденные_разделы, TEMPLATES[шаблон])
 
-        # Добавляем информацию о файле и пользователе
         результат["файл"] = файл.filename
         результат["шаблон"] = шаблон
         результат["пользователь"] = пользователь["username"]

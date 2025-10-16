@@ -42,3 +42,6 @@ async def get_user_from_header(authorization: str = Header(None)):
 
     token = authorization.replace("Bearer ", "")
     return check_token(token)
+
+
+#проверка на орфорграфию,на повторение слов, бд сохранение истории (поиска), структура отчета это регулярки а не мл

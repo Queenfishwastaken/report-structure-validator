@@ -1,22 +1,50 @@
 def compare_sections(found_sections: list, template_sections: list) -> dict:
-    """Сравнивает найденные разделы с шаблоном"""
 
+    # Словарь синонимов и похожих разделов
+    SECTION_SYNONYMS = {
+        "титульный лист": ["титульный", "министерство", "университет", "кафедра", "лабораторная работа"],
+        "введение": ["введение", "цель работы", "задание", "цель"],
+        "теория": ["теория", "ход работы", "расчет", "методика", "маски"],
+        "практика": ["практика", "результаты", "эксперимент", "реализация"],
+        "заключение": ["заключение", "вывод", "итоги", "результаты"],
+        "литература": ["литература", "библиография", "источники", "список литературы"]
+    }
+
+    found_matches = []
     missing = []
 
     # Проверяем каждый требуемый раздел
     for required in template_sections:
+        required_lower = required.lower()
         found = False
+
+        # Ищем прямые совпадения
         for found_section in found_sections:
-            # Простое сравнение по вхождению слов
-            if required.lower() in found_section.lower():
+            found_lower = found_section.lower()
+
+            # Прямое вхождение
+            if required_lower in found_lower:
                 found = True
+                found_matches.append(found_section)
                 break
+
+            # Проверяем синонимы
+            if required_lower in SECTION_SYNONYMS:
+                for synonym in SECTION_SYNONYMS[required_lower]:
+                    if synonym in found_lower:
+                        found = True
+                        found_matches.append(f"{required} (найден как: '{found_section}')")
+                        break
+                if found:
+                    break
+
         if not found:
             missing.append(required)
 
-    # Считаем оценку
+    # Считаем оценку (более мягкая система)
     total = len(template_sections)
-    score = round((total - len(missing)) / total * 100, 1)
+    found_count = total - len(missing)
+    score = round(found_count / total * 100, 1) if total > 0 else 0
 
     # Статус
     if score >= 80:
@@ -29,15 +57,30 @@ def compare_sections(found_sections: list, template_sections: list) -> dict:
         status = "Требует доработки"
 
     return {
-        "найдено_разделов": found_sections,
+        "найдено_разделов": found_matches,
         "отсутствуют": missing,
         "оценка": score,
-        "статус": status
+        "статус": status,
+        "совпадения_детально": f"Найдено {found_count} из {total} разделов"
     }
 
 
-# Шаблоны
+# Улучшенные шаблоны
 TEMPLATES = {
-    "лабораторная": ["Титульный лист", "Введение", "Теория", "Практика", "Заключение", "Литература"],
-    "курсовая": ["Титульный лист", "Содержание", "Введение", "Основная часть", "Заключение", "Библиография"]
+    "лабораторная": [
+        "Титульный лист",
+        "Введение",
+        "Теория",
+        "Практика",
+        "Заключение",
+        "Литература"
+    ],
+    "курсовая": [
+        "Титульный лист",
+        "Содержание",
+        "Введение",
+        "Основная часть",
+        "Заключение",
+        "Библиография"
+    ]
 }

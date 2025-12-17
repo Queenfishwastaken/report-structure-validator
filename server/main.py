@@ -1,3 +1,8 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__))
+
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -15,7 +20,7 @@ async def lifespan(app: FastAPI):
     create_tables()
     db = next(get_db())
     create_initial_admin(db)
-    print("Сервер запущен")
+    print("✅ Сервер запущен")
     yield
 
 
@@ -27,6 +32,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.post("/регистрация")
 async def register(
@@ -45,6 +51,7 @@ async def register(
         "user": username,
         "user_id": user.id
     }
+
 
 @app.post("/вход")
 async def login(
@@ -65,6 +72,7 @@ async def login(
         "user_id": user.id
     }
 
+
 @app.get("/шаблоны")
 async def get_templates(db: Session = Depends(get_db)):
     templates = db.query(ReportTemplate).all()
@@ -75,14 +83,14 @@ async def get_templates(db: Session = Depends(get_db)):
         }
     }
 
+
 @app.post("/проверить")
 async def check_document(
         file: UploadFile = File(..., description="DOCX file"),
         template: str = Form(..., description="Template name"),
-        token: str = Form(None),  # Необязательный токен
+        token: str = Form(None),
         db: Session = Depends(get_db)
 ):
-
     if template not in TEMPLATES:
         return {"error": f"Template '{template}' not found"}
 
@@ -104,17 +112,17 @@ async def check_document(
                 if user:
                     user_id = user.id
                     username = user.username
-            except:
-                pass
+            except Exception as e:
+                print(f"Ошибка проверки токена: {e}")
 
         report = Report(
             user_id=user_id,
             filename=file.filename,
             template_type=template,
-            found_sections=found_sections,
-            missing_sections=result["отсутствуют"],
-            score=result["оценка"],
-            status=result["статус"]
+            found_sections=str(found_sections),
+            missing_sections=str(result.get("отсутствуют", [])),
+            score=result.get("оценка", 0),
+            status=result.get("статус", "")
         )
         db.add(report)
         db.commit()
@@ -124,15 +132,57 @@ async def check_document(
         result["template"] = template
         result["user"] = username
 
+        # ДОБАВЛЕНО: Формируем понятное отображение найденных разделов
+        enhanced_found_sections = []
+
+        # Обрабатываем найденные разделы с учетом ИИ-синонимов
+        for section in result.get("найдено_разделов", []):
+            # Если раздел содержит "(найден как: )" - это ИИ-синоним
+            if "(найден как:" in section:
+                # Извлекаем требуемый раздел (часть до "(")
+                required_part = section.split("(найден как:")[0].strip()
+                enhanced_found_sections.append(required_part)
+            else:
+                enhanced_found_sections.append(section)
+
+        # Добавляем обратно в результат
+        result["найдено_разделов_понятно"] = enhanced_found_sections
+
+        # Создаем простой статус для отображения
+        simple_status = []
+        for required_section in TEMPLATES[template]:
+            found = False
+            found_as = required_section
+
+            # Проверяем в обычных найденных
+            for found_section in enhanced_found_sections:
+                if required_section.lower() == found_section.lower():
+                    found = True
+                    break
+
+            # Проверяем в ИИ-синонимах
+            if not found and "ai_synonyms" in result:
+                for ai_item in result["ai_synonyms"]:
+                    if ai_item["required"] == required_section:
+                        found = True
+                        found_as = ai_item["found"]
+                        break
+
+            simple_status.append({
+                "section": required_section,
+                "found": found,
+                "found_as": found_as if found_as != required_section else None
+            })
+
+        result["simple_status"] = simple_status
+
         return result
 
     except Exception as e:
         return {"error": f"Check error: {str(e)}"}
 
-
 @app.post("/профиль")
 async def get_profile(token: str = Form(...), db: Session = Depends(get_db)):
-    """Получить профиль по токену"""
     from auth import check_token
     try:
         payload = check_token(token)
@@ -145,8 +195,8 @@ async def get_profile(token: str = Form(...), db: Session = Depends(get_db)):
             "email": user.email,
             "full_name": user.full_name
         }
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
 
 @app.post("/мои-отчеты")
@@ -167,16 +217,15 @@ async def get_my_reports(token: str = Form(...), db: Session = Depends(get_db)):
                     "template": report.template_type,
                     "score": report.score,
                     "status": report.status,
-                    "upload_date": report.uploaded_at.isoformat()
+                    "upload_date": report.uploaded_at.isoformat() if report.uploaded_at else None
                 }
                 for report in reports
             ]
         }
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
 
 
-# DATABASE VIEW
 @app.get("/база")
 async def view_db(db: Session = Depends(get_db)):
     users = db.query(User).all()
@@ -218,5 +267,4 @@ async def view_db(db: Session = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

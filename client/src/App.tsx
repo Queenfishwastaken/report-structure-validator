@@ -18,6 +18,17 @@ interface Report {
   upload_date: string;
 }
 
+interface AIResult {
+  required: string;
+  found: string;
+  explanation: string;
+}
+
+interface SpellError {
+  wrong: string;
+  correct: string;
+}
+
 interface CheckResult {
   найдено_разделов: string[];
   отсутствуют: string[];
@@ -27,9 +38,10 @@ interface CheckResult {
   file?: string;
   template?: string;
   error?: string;
+  ai_synonyms?: AIResult[];
+  орфографические_ошибки?: SpellError[];
 }
 
-// Компонент навигации
 // Компонент навигации
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -231,7 +243,6 @@ const Register: React.FC = () => {
 };
 
 // Компонент главной страницы
-// Компонент главной страницы
 const Home: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [template, setTemplate] = useState('лабораторная');
@@ -292,23 +303,36 @@ const Home: React.FC = () => {
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error(`Ошибка сервера: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Получен результат от сервера:', data);
       setResult(data);
     } catch (error) {
-      alert('Ошибка при проверке файла');
+      console.error('Ошибка при проверке файла:', error);
+      alert('Ошибка при проверке файла. Проверьте консоль для подробностей.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Функция для проверки наличия раздела
-  const isSectionFound = (sectionName: string) => {
-    if (!result) return false;
+  // Функция для проверки наличия раздела и определения, был ли он найден через ИИ
+  const getSectionStatus = (sectionName: string) => {
+    if (!result) return { found: false, isAI: false };
 
     const sectionLower = sectionName.toLowerCase();
-    return result.найдено_разделов.some(found =>
+    const found = result.найдено_разделов.some(found =>
       found.toLowerCase().includes(sectionLower)
     );
+
+    // Проверяем, был ли раздел найден через ИИ
+    const isAI = result.ai_synonyms?.some(item =>
+      item.required.toLowerCase() === sectionLower
+    ) || false;
+
+    return { found, isAI };
   };
 
   return (
@@ -385,6 +409,62 @@ const Home: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Блок с результатами ИИ - синонимы */}
+        {result && result.ai_synonyms && result.ai_synonyms.length > 0 && (
+          <div className="result-section ai-section">
+            <h3 className="ai-title">
+              ИИ нашёл синонимы
+            </h3>
+            <div className="ai-content">
+              {result.ai_synonyms.map((item, idx) => (
+                <div key={idx} className="ai-item">
+                  <div className="ai-match">
+                    <span className="ai-required">
+                      {item.required}
+                    </span>
+                    <span className="ai-arrow">→</span>
+                    <span className="ai-found">
+                      {item.found}
+                    </span>
+                  </div>
+                  <div className="ai-explanation">
+                    {item.explanation}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Блок с орфографическими ошибками */}
+        {result && result.орфографические_ошибки && result.орфографические_ошибки.length > 0 && (
+          <div className="result-section spelling-section">
+            <h3 className="spelling-title">
+              Орфографические ошибки
+            </h3>
+            <div className="spelling-content">
+              <div className="spelling-grid">
+                {result.орфографические_ошибки.map((error, idx) => (
+                  <div key={idx} className="spelling-item">
+                    <div className="error-number">
+                      Ошибка #{idx + 1}
+                    </div>
+                    <div className="error-wrong">
+                      {error.wrong}
+                    </div>
+                    <div className="error-correct">
+                      {error.correct}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="spelling-summary">
+                Всего найдено {result.орфографические_ошибки.length} ошибок
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Боковая панель со структурой */}
@@ -396,61 +476,67 @@ const Home: React.FC = () => {
               <>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Титульный лист') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Титульный лист') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Титульный лист').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Титульный лист').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Титульный лист</span>
+                      {getSectionStatus('Титульный лист').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Введение') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Введение') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Введение').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Введение').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Введение</span>
+                      {getSectionStatus('Введение').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Теория') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Теория') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Теория').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Теория').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Теория</span>
+                      {getSectionStatus('Теория').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Практика') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Практика') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Практика').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Практика').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Практика</span>
+                      {getSectionStatus('Практика').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Заключение') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Заключение') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Заключение').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Заключение').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Заключение</span>
+                      {getSectionStatus('Заключение').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Литература') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Литература') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Литература').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Литература').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Литература</span>
+                      {getSectionStatus('Литература').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
@@ -461,61 +547,67 @@ const Home: React.FC = () => {
               <>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Титульный лист') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Титульный лист') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Титульный лист').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Титульный лист').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Титульный лист</span>
+                      {getSectionStatus('Титульный лист').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Содержание') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Содержание') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Содержание').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Содержание').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Содержание</span>
+                      {getSectionStatus('Содержание').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Введение') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Введение') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Введение').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Введение').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Введение</span>
+                      {getSectionStatus('Введение').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Основная часть') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Основная часть') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Основная часть').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Основная часть').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Основная часть</span>
+                      {getSectionStatus('Основная часть').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Заключение') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Заключение') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Заключение').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Заключение').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Заключение</span>
+                      {getSectionStatus('Заключение').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>
                 <div className="structure-item">
                   <div className="section-info">
-                    <div className={`status-indicator ${isSectionFound('Библиография') ? 'found' : 'missing'}`}>
-                      {isSectionFound('Библиография') ? '✓' : '✗'}
+                    <div className={`status-indicator ${getSectionStatus('Библиография').found ? 'found' : 'missing'}`}>
+                      {getSectionStatus('Библиография').found ? '✓' : '✗'}
                     </div>
                     <div className="section-card">
                       <span className="section-name">Библиография</span>
+                      {getSectionStatus('Библиография').isAI && <span className="ai-status">ИИ</span>}
                     </div>
                   </div>
                 </div>

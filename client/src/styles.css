@@ -358,3 +358,218 @@ li:before {
     padding: 25px;
   }
 }
+
+/* Стили для ИИ-блоков */
+.ai-section {
+  background-color: var(--white);
+  padding: 30px;
+  border-radius: var(--border-radius);
+  margin-bottom: 30px;
+  border: 2px solid #1890ff;
+  margin-top: 20px;
+}
+
+.ai-title {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 15px 30px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 2px solid #1890ff;
+  border-radius: var(--border-radius);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.ai-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ai-item {
+  background-color: #fafafa;
+  padding: 20px;
+  border-radius: var(--border-radius);
+  border: 2px solid #d9d9d9;
+}
+
+.ai-match {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ai-required {
+  padding: 8px 16px;
+  background-color: #1890ff;
+  color: white;
+  border-radius: var(--border-radius);
+  font-weight: bold;
+  border: 2px solid #1890ff;
+  font-size: 16px;
+}
+
+.ai-found {
+  padding: 8px 16px;
+  background-color: #52c41a;
+  color: white;
+  border-radius: var(--border-radius);
+  font-weight: bold;
+  border: 2px solid #52c41a;
+  font-size: 16px;
+}
+
+.ai-arrow {
+  font-size: 20px;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.ai-explanation {
+  font-size: 14px;
+  color: #666;
+  padding: 15px;
+  background-color: white;
+  border-radius: calc(var(--border-radius) / 2);
+  border: 2px solid #d9d9d9;
+  text-align: center;
+}
+
+/* Стили для орфографических ошибок */
+.spelling-section {
+  background-color: var(--white);
+  padding: 30px;
+  border-radius: var(--border-radius);
+  margin-bottom: 30px;
+  border: 2px solid #fa8c16;
+  margin-top: 20px;
+}
+
+.spelling-title {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 15px 30px;
+  background-color: #fff7e6;
+  color: #fa8c16;
+  border: 2px solid #fa8c16;
+  border-radius: var(--border-radius);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.spelling-content {
+  margin-top: 15px;
+}
+
+.spelling-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.spelling-item {
+  padding: 20px;
+  background-color: white;
+  border-radius: var(--border-radius);
+  border: 2px solid #ffa940;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+}
+
+.error-number {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.error-wrong {
+  font-size: 18px;
+  color: #f5222d;
+  text-decoration: line-through;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.error-correct {
+  font-size: 18px;
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.spelling-summary {
+  padding: 15px 25px;
+  background-color: #fff1b8;
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 16px;
+  color: #874d00;
+  border: 2px solid #ffd666;
+  font-weight: bold;
+}
+
+/* Стили для статусов ИИ в боковой панели */
+.ai-status {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 10px;
+  border: 1px solid #1890ff;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* Адаптивность для ИИ-блоков */
+@media (max-width: 768px) {
+  .ai-section,
+  .spelling-section {
+    padding: 20px;
+  }
+
+  .ai-title,
+  .spelling-title {
+    padding: 12px 20px;
+    font-size: 18px;
+  }
+
+  .ai-match {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ai-arrow {
+    transform: rotate(90deg);
+  }
+
+  .spelling-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .spelling-item {
+    padding: 15px;
+    min-height: 100px;
+  }
+
+  .error-wrong,
+  .error-correct {
+    font-size: 16px;
+  }
+
+  .ai-status {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+}
